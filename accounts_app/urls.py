@@ -12,4 +12,5 @@ urlpatterns = [
                   path('dashboard/patient/', views.patient_dashboard, name='patient_dashboard'),
                   path('dashboard/doctor/', views.doctor_dashboard, name='doctor_dashboard'),
                   path('logout/', views.logout_view, name='logout'),
-              ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+              ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)+static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
