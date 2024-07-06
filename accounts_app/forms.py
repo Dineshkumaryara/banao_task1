@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from .models import CustomUser
+from .models import BlogPost
 
 
 class PatientSignUpForm(UserCreationForm):
@@ -39,3 +40,10 @@ class DoctorSignUpForm(UserCreationForm):
         if commit:
             user.save()
         return user
+
+
+# blog
+class BlogPostForm(forms.ModelForm):
+    class Meta:
+        model = BlogPost
+        fields = ['title', 'image', 'category', 'summary', 'content', 'draft']

@@ -2,7 +2,6 @@ from django.urls import path
 from . import views
 from django.conf import settings
 from django.conf.urls.static import static
-from django.contrib.auth import views as auth_views
 
 urlpatterns = [
                   path('', views.home, name='home'),
@@ -12,5 +11,7 @@ urlpatterns = [
                   path('dashboard/patient/', views.patient_dashboard, name='patient_dashboard'),
                   path('dashboard/doctor/', views.doctor_dashboard, name='doctor_dashboard'),
                   path('logout/', views.logout_view, name='logout'),
-              ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)+static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-
+                  path('blog/create/', views.create_blog_post, name='create_blog_post'),
+                  path('edit/<int:post_id>/', views.edit_blog_post, name='edit_blog_post'),
+              ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) + static(settings.STATIC_URL,
+                                                                                         document_root=settings.STATIC_ROOT)

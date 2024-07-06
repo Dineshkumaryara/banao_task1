@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser
+from .models import CustomUser, BlogPost
 
 
 class CustomUserAdmin(UserAdmin):
@@ -25,4 +25,5 @@ class CustomUserAdmin(UserAdmin):
         return queryset.filter(is_doctor=True)
 
 
+admin.site.register(BlogPost)
 admin.site.register(CustomUser, CustomUserAdmin)
