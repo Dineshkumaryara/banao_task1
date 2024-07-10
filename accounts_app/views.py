@@ -1,10 +1,14 @@
-from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import login, logout
-from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
-from .forms import PatientSignUpForm, DoctorSignUpForm
-from .models import BlogPost
-from .forms import BlogPostForm
+from django.contrib.auth.forms import AuthenticationForm
+from .forms import PatientSignUpForm, DoctorSignUpForm, BlogPostForm, AppointmentForm
+from django.shortcuts import render, get_object_or_404, redirect
+from .models import User, Appointment, BlogPost
+from .google_calendar import create_calendar_event
+from django.contrib.auth import get_user_model
+from datetime import datetime, timedelta
+from django.utils import timezone
+from .utils import send_calendar_instructions
 
 
 def home(request):
@@ -25,9 +29,12 @@ def patient_signup(request):
 
 def doctor_signup(request):
     if request.method == 'POST':
-        form = DoctorSignUpForm(request.POST, request.FILES)
+        form = DoctorSignUpForm(request.POST)
         if form.is_valid():
             user = form.save()
+            doctor_email = user.email
+            doctor_name = user.get_full_name()
+            send_calendar_instructions(doctor_email, doctor_name)
             login(request, user)
             return redirect('doctor_dashboard')
     else:
@@ -55,14 +62,35 @@ def logout_view(request):
     return redirect('home')
 
 
+User = get_user_model()
+
+
 @login_required
 def patient_dashboard(request):
-    return render(request, 'patient_dashboard.html', {'user': request.user})
+    doctors = User.objects.filter(is_doctor=True)
+    appointments = Appointment.objects.filter(patient=request.user)
+    posts = BlogPost.objects.filter(draft=False)
+    for post in posts:
+        post.summary = ' '.join(post.summary.split()[:15]) + '...'
+    return render(request, 'patient_dashboard.html', {
+        'user': request.user,
+        'doctors': doctors,
+        'appointments': appointments,
+        'posts': posts,
+    })
 
 
 @login_required
 def doctor_dashboard(request):
-    return render(request, 'doctor_dashboard.html', {'user': request.user})
+    doctor = request.user
+    appointments = Appointment.objects.filter(doctor=doctor)
+    posts = BlogPost.objects.filter(author=doctor)
+    context = {
+        'user': doctor,
+        'appointments': appointments,
+        'posts': posts,
+    }
+    return render(request, 'doctor_dashboard.html', context)
 
 
 # blog
@@ -80,20 +108,6 @@ def create_blog_post(request):
     return render(request, 'create_blog_post.html', {'form': form})
 
 
-@login_required
-def doctor_dashboard(request):
-    posts = BlogPost.objects.filter(author=request.user)
-    return render(request, 'doctor_dashboard.html', {'posts': posts})
-
-
-@login_required
-def patient_dashboard(request):
-    posts = BlogPost.objects.filter(draft=False)
-    for post in posts:
-        post.summary = ' '.join(post.summary.split()[:15]) + '...'
-    return render(request, 'patient_dashboard.html', {'posts': posts})
-
-
 # edit blog
 @login_required
 def edit_blog_post(request, post_id):
@@ -106,3 +120,41 @@ def edit_blog_post(request, post_id):
     else:
         form = BlogPostForm(instance=blog_post)
     return render(request, 'edit_blog_post.html', {'form': form, 'blog_post': blog_post})
+
+
+# Appointment
+User = get_user_model()
+
+
+@login_required
+def book_appointment(request, doctor_id):
+    doctor = get_object_or_404(User, id=doctor_id, is_doctor=True)
+    if request.method == 'POST':
+        form = AppointmentForm(request.POST)
+        if form.is_valid():
+            appointment = form.save(commit=False)
+            appointment.patient = request.user
+            appointment.doctor = doctor
+            appointment.date = form.cleaned_data['date']
+            appointment.start_time = form.cleaned_data['start_time']
+
+            # Combine date and time to form datetime objects
+            start_datetime = timezone.make_aware(datetime.combine(appointment.date, appointment.start_time))
+            appointment.start_time = start_datetime
+
+            # Calculate end time (45 minutes later)
+            appointment.end_time = start_datetime + timedelta(minutes=45)
+
+            appointment.save()
+            create_calendar_event(appointment, doctor.email)
+            return redirect('appointment_details', appointment_id=appointment.id)
+    else:
+        form = AppointmentForm()
+    return render(request, 'book_appointment.html', {'form': form, 'doctor': doctor})
+
+
+@login_required
+def appointment_details(request, appointment_id):
+    appointment = get_object_or_404(Appointment, id=appointment_id)
+    return render(request, 'appointment_details.html', {'appointment': appointment})
+

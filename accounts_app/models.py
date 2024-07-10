@@ -1,6 +1,9 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.conf import settings
+from django.contrib.auth.models import User
+from datetime import datetime, timedelta, date
 
 
 class CustomUser(AbstractUser):
@@ -48,3 +51,23 @@ class BlogPost(models.Model):
 
     def __str__(self):
         return self.title
+
+
+# Appointment
+class Appointment(models.Model):
+    doctor = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='doctor_appointments', on_delete=models.CASCADE)
+    patient = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='patient_appointments', on_delete=models.CASCADE)
+    speciality = models.CharField(max_length=100)
+    date = models.DateField()
+    start_time = models.TimeField()
+    end_time = models.TimeField(blank=True, null=True)  # Add this field for storing end time
+    description = models.TextField(blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        # Calculate end time if not already set
+        if not self.end_time:
+            self.end_time = (self.start_time + timedelta(minutes=45)).time()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f'Appointment with {self.doctor} on {self.date} at {self.start_time}'

@@ -21,7 +21,7 @@
         }
         h2 {
             font-size: 2.5em;
-                color: #333;
+            color: #333;
             margin-bottom: 20px;
         }
         img.profile-picture {
@@ -53,23 +53,26 @@
         button:hover, a:hover {
             background-color: #45a049;
         }
-        .blog-container {
-            margin-top: 30px;
+        .section {
+            margin-top: 50px;
         }
-        .blog-post {
+        .blog-container, .appointment-details {
+            margin-bottom: 30px;
+        }
+        .blog-post, .appointment-item {
             display: flex;
             align-items: center;
             border-bottom: 1px solid #ccc;
             padding: 20px 0;
         }
-        .blog-post img {
+        .blog-post img, .appointment-item img {
             width: 100px;
             height: 100px;
             object-fit: cover;
             border-radius: 10px;
             margin-right: 20px;
         }
-        .blog-post h4 {
+        .blog-post h4, .appointment-item h4 {
             margin: 0;
             font-size: 1.5em;
             color: #333;
@@ -97,7 +100,25 @@
             <button type="submit">Logout</button>
         </form>
         <a href="{% url 'create_blog_post' %}" style="margin-right: 10px;">Create New Blog Post</a>
-        <div class="blog-container">
+
+        <div class="section appointment-details">
+            <h3>My Appointments</h3>
+            {% if appointments %}
+                {% for appointment in appointments %}
+                    <div class="appointment-item">
+                        <h4>Appointment with {{ appointment.patient.first_name }} {{ appointment.patient.last_name }}</h4>
+                        <p class="details">
+                            <strong>Date:</strong> {{ appointment.date }} <br>
+                            <strong>Time:</strong> {{ appointment.start_time }} - {{ appointment.end_time }}
+                        </p>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p>No appointments found.</p>
+            {% endif %}
+        </div>
+
+        <div class="section blog-container">
             <h3>My Blog Posts</h3>
             <ul>
                 {% for post in posts %}
